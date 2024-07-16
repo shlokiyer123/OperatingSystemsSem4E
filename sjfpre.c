@@ -1,143 +1,69 @@
-// C program to implement Shortest Remaining Time First
-// Shortest Remaining Time First (SRTF)
-
 #include <stdio.h>
+#include <stdbool.h>
 #include <limits.h>
-
 struct Process {
-    int pid; // Process ID
-    int bt; // Burst Time
-    int art; // Arrival Time
+    int pid;
+    int arrival_time;
+    int burst_time;
+    int remaining_time; 
+    int completion_time;
+    int turnaround_time;
+    int waiting_time;
 };
 
-// Function to find the waiting time for all
-// processes
-void findWaitingTime(struct Process proc[], int n, int wt[]) {
-    int rt[n];
+int findShortestJob(struct Process processes[], int n, int current_time) {
+    int shortest_job_index = -1;
+    int shortest_job = INT_MAX;
+    for (int i = 0; i < n; i++) {
+        if (processes[i].arrival_time <= current_time && processes[i].remaining_time > 0 && processes[i].remaining_time < shortest_job) {
+            shortest_job_index = i;
+            shortest_job = processes[i].remaining_time;
+        }
+    }
+    return shortest_job_index;
+}
 
-    // Copy the burst time into rt[]
-    for (int i = 0; i < n; i++)
-        rt[i] = proc[i].bt;
-
-    int complete = 0, t = 0, minm = INT_MAX;
-    int shortest = 0, finish_time;
-    int check = 0; // changed boolean to integer
-
-    // Process until all processes gets
-    // completed
-    while (complete != n) {
-
-        // Find process with minimum
-        // remaining time among the
-        // processes that arrives till the
-        // current time
-        for (int j = 0; j < n; j++) {
-            if ((proc[j].art <= t) &&
-            (rt[j] < minm) && rt[j] > 0) {
-                minm = rt[j];
-                shortest = j;
-                check = 1; // changed boolean to integer
+void SJF(struct Process processes[], int n) {
+    int current_time = 0;
+    int completed = 0;
+    while (completed < n) {
+        int shortest_job_index = findShortestJob(processes, n, current_time);
+        if (shortest_job_index == -1) {
+            current_time++; 
+        } else {
+           
+            processes[shortest_job_index].remaining_time--;
+            current_time++;
+            if (processes[shortest_job_index].remaining_time == 0) {
+                
+                processes[shortest_job_index].completion_time = current_time;
+                processes[shortest_job_index].turnaround_time = processes[shortest_job_index].completion_time - processes[shortest_job_index].arrival_time;
+                processes[shortest_job_index].waiting_time = processes[shortest_job_index].turnaround_time - processes[shortest_job_index].burst_time;
+                completed++;
             }
         }
-
-        if (check == 0) {
-            t++;
-            continue;
-        }
-
-        // Reduce remaining time by one
-        rt[shortest]--;
-
-        // Update minimum
-        minm = rt[shortest];
-        if (minm == 0)
-            minm = INT_MAX;
-
-        // If a process gets completely
-        // executed
-        if (rt[shortest] == 0) {
-
-            // Increment complete
-            complete++;
-            check = 0; // changed boolean to integer
-
-            // Find finish time of current
-            // process
-            finish_time = t + 1;
-
-            // Calculate waiting time
-            wt[shortest] = finish_time -
-                        proc[shortest].bt -
-                        proc[shortest].art;
-
-            if (wt[shortest] < 0)
-                wt[shortest] = 0;
-        }
-        // Increment time
-        t++;
     }
 }
 
-// Function to calculate turn around time
-void findTurnAroundTime(struct Process proc[], int n, int wt[], int tat[]) {
-    // calculating turnaround time by adding
-    // bt[i] + wt[i]
-    for (int i = 0; i < n; i++)
-        tat[i] = proc[i].bt + wt[i];
-}
-
-// Function to calculate average time
-void findavgTime(struct Process proc[], int n) {
-    int wt[n], tat[n], total_wt = 0,
-                    total_tat = 0;
-
-    // Function to find waiting time of all
-    // processes
-    findWaitingTime(proc, n, wt);
-
-    // Function to find turn around time for
-    // all processes
-    findTurnAroundTime(proc, n, wt, tat);
-
-    // Display processes along with all
-    // details
-    printf(" P\t\t"
-        "BT\t\t"
-        "WT\t\t"
-        "TAT\t\t\n");
-
-    // Calculate total waiting time and
-    // total turnaround time
-    for (int i = 0; i < n; i++) {
-        total_wt = total_wt + wt[i];
-        total_tat = total_tat + tat[i];
-        printf(" %d\t\t"
-            "%d\t\t %d"
-            "\t\t %d\n", proc[i].pid,
-            proc[i].bt, wt[i], tat[i]);
-    }
-
-    printf("\nAverage waiting time = "
-        "%f", (float)total_wt / (float)n);
-    printf("\nAverage turn around time = "
-        "%f", (float)total_tat / (float)n);
-}
-
-// Driver code
 int main() {
-    int n1;
-    printf("Enter the number of processes:\n");
-    scanf("%d",&n1);
-    struct Process proc[n1]; // declaring proc array
-    for(int i=0;i<n1;i++)
-    {
-        proc[i].pid=i+1; // correcting the assignment
-        printf("Enter the arrival time and burst time for process %d:\t",i+1);
-        scanf("%d %d",&proc[i].art,&proc[i].bt);
+    int n;
+    printf("Enter the total number of processes: ");
+    scanf("%d", &n);
+    struct Process processes[n];
+    printf("Enter Arrival Time and Burst Time for each process:\n");
+    for (int i = 0; i < n; i++) {
+        printf("Process %d:\n", i + 1);
+        printf("Arrival Time: ");
+        scanf("%d", &processes[i].arrival_time);
+        printf("Burst Time: ");
+        scanf("%d", &processes[i].burst_time);
+        processes[i].remaining_time = processes[i].burst_time;
+        processes[i].pid = i + 1;
     }
-    int n = sizeof(proc) / sizeof(proc[0]);
-
-    findavgTime(proc, n);
+    SJF(processes, n);
+    printf("\nProcess\tArrival Time\tBurst Time\tCompletion Time\tWaiting Time\tTurnaround Time\n");
+    for (int i = 0; i < n; i++) {
+        printf("%d\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", processes[i].pid, processes[i].arrival_time, processes[i].burst_time, processes[i].completion_time, processes[i].waiting_time, processes[i].turnaround_time);
+    }
     return 0;
 }
-
